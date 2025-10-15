@@ -1,10 +1,20 @@
 import React from "react";
-import { AppBar, Toolbar, Box, Button } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  Button,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import kaban from "../assets/kaban.png";
 import { useNavigate } from "react-router-dom";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <AppBar
@@ -12,8 +22,8 @@ const Header: React.FC = () => {
       sx={{
         backgroundColor: "#1E1E1E",
         boxShadow: "none",
-        px: { xs: 2, md: 10 },
-        py: 1.5,
+        px: { xs: 2, sm: 4, md: 10 },
+        py: { xs: 1, sm: 1.5 },
       }}
     >
       <Toolbar
@@ -22,42 +32,39 @@ const Header: React.FC = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          minHeight: isMobile ? 64 : 96,
         }}
       >
         {/* Логотип слева */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <img src={kaban} alt="Kaban X" style={{ height: 80 }} />
+          <img
+            src={kaban}
+            alt="Kaban X"
+            style={{
+              height: isMobile ? 50 : 80,
+              transition: "0.2s ease",
+            }}
+          />
         </Box>
 
-        {/* Кнопки справа */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {/* <Button
-            variant="outlined"
-            sx={{
-              borderRadius: 5,
-              borderColor: "#fff",
-              color: "#fff",
-              textTransform: "none",
-              px: 3,
-              "&:hover": {
-                borderColor: "#fff",
-                backgroundColor: "rgba(255,255,255,0.1)",
-              },
-            }}
-          >
-            Вход
-          </Button> */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? 1 : 2,
+          }}
+        >
           <Button
             variant="outlined"
-            size="medium"
+            size="small"
             sx={{
               backgroundColor: "#FFFFFF",
               color: "#1E1E1E",
               borderColor: "#1E1E1E",
               borderWidth: 2,
-              fontSize: 24,
-              fontWeight: "600",
-              padding: "16px 48px",
+              fontSize: isMobile ? 16 : 24,
+              fontWeight: 600,
+              padding: isMobile ? "8px 24px" : "16px 48px",
               borderRadius: "8px",
               textTransform: "none",
               "&:hover": {
@@ -65,28 +72,23 @@ const Header: React.FC = () => {
                 color: "#FFFFFF",
                 borderColor: "#fff",
               },
-              "@media (max-width: 480px)": {
-                fontSize: 20,
-                padding: "12px 36px",
-              },
             }}
-            onClick={() => {
-              navigate("/login");
-            }}
+            onClick={() => navigate("/login")}
           >
             Вход
           </Button>
+
           <Button
             variant="outlined"
-            size="medium"
+            size="small"
             sx={{
               backgroundColor: "#1E1E1E",
               color: "#fff",
               borderColor: "#1E1E1E",
               borderWidth: 2,
-              fontSize: 24,
-              fontWeight: "600",
-              padding: "16px 48px",
+              fontSize: isMobile ? 16 : 24,
+              fontWeight: 600,
+              padding: isMobile ? "8px 24px" : "16px 48px",
               borderRadius: "8px",
               textTransform: "none",
               "&:hover": {
@@ -94,14 +96,8 @@ const Header: React.FC = () => {
                 color: "#FFFFFF",
                 borderColor: "#fff",
               },
-              "@media (max-width: 480px)": {
-                fontSize: 20,
-                padding: "12px 36px",
-              },
             }}
-            onClick={() => {
-              navigate("/register");
-            }}
+            onClick={() => navigate("/register")}
           >
             Регистрация
           </Button>

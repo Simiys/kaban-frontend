@@ -4,6 +4,7 @@ import { Box, Typography, Button } from "@mui/material";
 import { motion } from "framer-motion";
 
 import { useMediaQuery } from "@mui/material";
+
 import Header from "../components/Header";
 import RunningText from "../components/RunningText";
 
