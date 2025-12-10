@@ -1,28 +1,52 @@
 import React, { useState } from "react";
-import { Box, TextField, Button } from "@mui/material";
+import { Box, TextField, Button, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
+import { useApi } from "../hooks/useApi";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useApi(); // хук работы с API
+
   const [formData, setFormData] = useState({
     login: "",
     password: "",
   });
 
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange =
-    (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    (field: "login" | "password") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
         ...prev,
         [field]: event.target.value,
       }));
     };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Обработка входа
-    console.log("Login data:", formData);
-    navigate("/main");
+    setError(null);
+
+    try {
+      setIsSubmitting(true);
+      // бекенд ждёт email
+      await login({
+        email: formData.login,
+        password: formData.password,
+      });
+
+      // токены уже сохранились внутри useApi, идём на главную
+      navigate("/main");
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(
+        err?.message || "Не удалось войти. Проверьте данные и попробуйте снова."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRegisterRedirect = () => {
@@ -53,7 +77,7 @@ const LoginPage: React.FC = () => {
       >
         <TextField
           fullWidth
-          placeholder="Логин"
+          placeholder="Логин или email"
           value={formData.login}
           onChange={handleChange("login")}
           sx={{
@@ -180,9 +204,23 @@ const LoginPage: React.FC = () => {
           }}
         />
 
+        {error && (
+          <Typography
+            sx={{
+              color: "#ff6b6b",
+              marginBottom: "1vh",
+              fontSize: "1.8vh",
+              textAlign: "center",
+            }}
+          >
+            {error}
+          </Typography>
+        )}
+
         <Button
           type="submit"
           variant="contained"
+          disabled={isSubmitting}
           sx={{
             width: "30%",
             padding: {
@@ -232,7 +270,7 @@ const LoginPage: React.FC = () => {
             },
           }}
         >
-          Войти
+          {isSubmitting ? "Входим..." : "Войти"}
         </Button>
       </Box>
     </AuthLayout>

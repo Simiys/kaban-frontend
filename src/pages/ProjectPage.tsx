@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 
 import ProjectHeader from "../components/projects/ProjectHeader";
 import TicketGroup from "../components/tickets/TicketGroup";
-import Header from "../components/Header";
 import { ProjectProvider, useProject } from "../context/ProjectContext";
 import CreateTaskModal from "../components/tickets/CreateTaskModal";
 import CreateGroupModal from "../components/tickets/CreateGroupModal";
@@ -100,14 +99,19 @@ const ProjectPageInner: React.FC = () => {
   );
 };
 
+import { useParams } from "react-router-dom";
+
 const ProjectPage: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+
+  if (!projectId) return <div>Проект не найден</div>;
+
+  const id = Number(projectId);
+
   return (
-    <>
-      <Header />
-      <ProjectProvider>
-        <ProjectPageInner />
-      </ProjectProvider>
-    </>
+    <ProjectProvider projectId={id}>
+      <ProjectPageInner />
+    </ProjectProvider>
   );
 };
 

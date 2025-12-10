@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+// src/components/profile/ProjectsSection.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   TextField,
@@ -10,32 +11,65 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import CreateProjectModal from "./CreateProjectModal";
-
-interface Project {
-  id: number | string;
-  name: string;
-}
-
-const mockCreateProject = async (name: string): Promise<Project> => {
-  // потом заменишь на реальный запрос к бэкенду
-  console.log("[mock API] createProject", { name });
-  await new Promise((r) => setTimeout(r, 150));
-  return {
-    id: Math.floor(Math.random() * 100000),
-    name,
-  };
-};
+import { useApi, type ProjectResponse } from "../../hooks/useApi";
 
 const ProjectsSection: React.FC = () => {
   const navigate = useNavigate();
+  const { listProjects, listTeams, createTeam, createProject } = useApi();
 
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 1, name: "SoundCloudFM Team Project" },
-    { id: 2, name: "Internal Tools Refactor" },
-    { id: 3, name: "Marketing Automation" },
-  ]);
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // id команды, в которую будем создавать проекты
+  const [defaultTeamId, setDefaultTeamId] = useState<number | null>(null);
+
+  // загрузка проектов + команд
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [projectsResp, teamsResp] = await Promise.all([
+          listProjects(), // /projects
+          listTeams(), // /teams
+        ]);
+
+        if (cancelled) return;
+
+        setProjects(projectsResp);
+
+        if (teamsResp.length > 0) {
+          setDefaultTeamId(teamsResp[0].id);
+        } else {
+          // если команды нет — создаём одну
+          const team = await createTeam("My Team");
+          if (!cancelled) {
+            setDefaultTeamId(team.id);
+          }
+        }
+      } catch (err: any) {
+        console.error("Failed to load projects or teams", err);
+        if (!cancelled) {
+          setError(err?.message || "Не удалось загрузить проекты.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [listProjects, listTeams, createTeam]);
 
   const filteredProjects = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -43,18 +77,43 @@ const ProjectsSection: React.FC = () => {
     return projects.filter((p) => p.name.toLowerCase().includes(query));
   }, [projects, search]);
 
-  const handleOpenProject = (projectId: Project["id"]) => {
-    // роут можно поменять под твой
-    navigate(`/projects/${projectId}`);
+  const handleOpenProject = (projectId: ProjectResponse["id"]) => {
+    // тут потом подправим роут на твой формат
+    navigate(`/project/${projectId}`);
   };
 
   const handleCreateClick = () => {
     setCreateOpen(true);
   };
 
-  const handleCreateProject = async (name: string) => {
-    const newProject = await mockCreateProject(name);
-    setProjects((prev) => [...prev, newProject]);
+  const handleCreateProject = async (data: {
+    name: string;
+    description: string;
+  }) => {
+    if (!defaultTeamId) {
+      // если вдруг ещё не успели получить team_id
+      console.warn("Нет team_id для создания проекта");
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setError(null);
+
+      const created = await createProject({
+        name: data.name,
+        description: data.description || null,
+        team_id: defaultTeamId,
+      });
+
+      setProjects((prev) => [...prev, created]);
+    } catch (err: any) {
+      console.error("Failed to create project", err);
+      setError(err?.message || "Не удалось создать проект.");
+      throw err;
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -93,7 +152,11 @@ const ProjectsSection: React.FC = () => {
             mb: 2,
           }}
         >
-          {filteredProjects.length === 0 ? (
+          {loading ? (
+            <Typography color="text.secondary">Загрузка проектов...</Typography>
+          ) : error ? (
+            <Typography color="error">{error}</Typography>
+          ) : filteredProjects.length === 0 ? (
             <Typography color="text.secondary">Проекты не найдены.</Typography>
           ) : (
             <List disablePadding>
@@ -120,6 +183,7 @@ const ProjectsSection: React.FC = () => {
         <Button
           onClick={handleCreateClick}
           fullWidth
+          disabled={creating || !defaultTeamId}
           sx={{
             mt: "auto",
             bgcolor: "#000000",
@@ -133,7 +197,7 @@ const ProjectsSection: React.FC = () => {
             },
           }}
         >
-          Создать
+          {creating ? "Создаём..." : "Создать"}
         </Button>
       </Box>
 

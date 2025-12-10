@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Box, TextField, Button } from "@mui/material";
+import { Box, TextField, Button, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
+import { useApi } from "../hooks/useApi";
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { register: registerUser } = useApi(); // alias, чтобы не путать с window.register
+
   const [formData, setFormData] = useState({
     login: "",
     email: "",
@@ -12,19 +15,49 @@ const RegisterPage: React.FC = () => {
     confirmPassword: "",
   });
 
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange =
-    (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    (field: keyof typeof formData) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
         ...prev,
         [field]: event.target.value,
       }));
     };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Обработка регистрации
-    console.log("Register data:", formData);
-    navigate("/main");
+    setError(null);
+
+    if (!formData.login || !formData.email || !formData.password) {
+      setError("Заполните все поля.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Пароли не совпадают.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      await registerUser({
+        username: formData.login,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // токены уже положены в сторедж в useApi → можно сразу на main
+      navigate("/main");
+    } catch (err: any) {
+      console.error("Register failed:", err);
+      setError(err?.message || "Не удалось создать аккаунт. Попробуйте снова.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLoginRedirect = () => {
@@ -312,9 +345,23 @@ const RegisterPage: React.FC = () => {
           }}
         />
 
+        {error && (
+          <Typography
+            sx={{
+              color: "#ff6b6b",
+              marginBottom: "1vh",
+              fontSize: "1.8vh",
+              textAlign: "center",
+            }}
+          >
+            {error}
+          </Typography>
+        )}
+
         <Button
           type="submit"
           variant="contained"
+          disabled={isSubmitting}
           sx={{
             width: "30%",
             padding: {
@@ -364,7 +411,7 @@ const RegisterPage: React.FC = () => {
             },
           }}
         >
-          Начать
+          {isSubmitting ? "Создаём..." : "Начать"}
         </Button>
       </Box>
     </AuthLayout>

@@ -2,9 +2,20 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   type ReactNode,
 } from "react";
+import {
+  useApi,
+  type BoardResponse,
+  type TicketResponse,
+  type PriorityEnum,
+  type TicketCreateRequest,
+  type TicketUpdateRequest,
+  type SectionCreateRequest,
+} from "../hooks/useApi";
 
+// локальный приоритет в UI
 export type Priority = "high" | "default" | "low";
 
 export interface Member {
@@ -72,61 +83,7 @@ interface ProjectContextValue {
   closeCreateGroupModal: () => void;
 }
 
-// ---- моковые данные ----
-
-const initialGroups: Group[] = [
-  {
-    id: 1,
-    title: "TO DO",
-    items: [
-      {
-        id: "1",
-        title: "UI приложения",
-        description: "Описание UI блока...",
-        epic: "PROJECT DEVELOPMENT",
-        priority: "default",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "IN PROGRESS",
-    items: [
-      {
-        id: "2",
-        title: "Изучить библиотеку MUI",
-        description: "Надо изучить MUI и сделать UI...",
-        epic: "SELF-DEVELOPMENT",
-        priority: "low",
-      },
-      {
-        id: "3",
-        title: "UI приложения",
-        description: "Вторая задача в прогрессе...",
-        epic: "PROJECT DEVELOPMENT",
-        priority: "high",
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "IN REVIEW",
-    items: [],
-  },
-  {
-    id: 4,
-    title: "DONE",
-    items: [
-      {
-        id: "0",
-        title: "Изучить курсы по React",
-        description: "Задача выполнена.",
-        epic: "SELF-DEVELOPMENT",
-        priority: "low",
-      },
-    ],
-  },
-];
+// ---- члены команды (пока мок) ----
 
 const initialMembers: Member[] = [
   { id: 1, name: "Alice Johnson" },
@@ -134,8 +91,38 @@ const initialMembers: Member[] = [
   { id: 3, name: "Carlos Silva" },
 ];
 
-const mockApi = async (label: string, payload?: unknown) => {
-  console.log(`[mock API] ${label}`, payload);
+// маппинг приоритетов UI ↔ API
+const apiPriorityToLocal = (p: PriorityEnum): Priority => {
+  if (p === "high") return "high";
+  if (p === "low") return "low";
+  return "default"; // medium -> default
+};
+
+const localPriorityToApi = (p: Priority): PriorityEnum => {
+  if (p === "high") return "high";
+  if (p === "low") return "low";
+  return "medium"; // default -> medium
+};
+
+// маппинг тикета с бэка в локальную Task
+const mapTicketToTask = (ticket: TicketResponse): Task => ({
+  id: ticket.id,
+  title: ticket.name,
+  description: ticket.task,
+  epic: "GENERAL", // в API поля нет, держим простой эпик
+  priority: apiPriorityToLocal(ticket.priority),
+  assigneeId: null,
+});
+
+// маппинг BoardResponse → Group[]
+const mapBoardToGroups = (board: BoardResponse): Group[] => {
+  return [...board.sections]
+    .sort((a, b) => a.order - b.order)
+    .map((section) => ({
+      id: section.id,
+      title: section.name,
+      items: section.tickets.map(mapTicketToTask),
+    }));
 };
 
 const ProjectContext = createContext<ProjectContextValue | undefined>(
@@ -150,10 +137,23 @@ export const useProject = (): ProjectContextValue => {
   return ctx;
 };
 
-export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
+interface ProjectProviderProps {
+  projectId: number;
+  children: ReactNode;
+}
+
+export const ProjectProvider: React.FC<ProjectProviderProps> = ({
+  projectId,
   children,
 }) => {
-  const [groups, setGroups] = useState<Group[]>(initialGroups);
+  const {
+    getBoard,
+    createTask: apiCreateTask,
+    updateTask: apiUpdateTask,
+    createSection: apiCreateSection,
+  } = useApi();
+
+  const [groups, setGroups] = useState<Group[]>([]);
   const [members] = useState<Member[]>(initialMembers);
 
   const [createTaskModal, setCreateTaskModal] = useState<{
@@ -162,6 +162,29 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
   }>({ open: false, groupId: null });
 
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
+  // --- загрузка борды проекта ---
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const board = await getBoard(projectId);
+        if (cancelled) return;
+        setGroups(mapBoardToGroups(board));
+      } catch (err) {
+        console.error("Failed to load board", err);
+        // можешь тут повесить тост/алерт
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, getBoard]);
 
   // --- модалки ---
 
@@ -181,12 +204,20 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
   const createTask: ProjectContextValue["createTask"] = async (data) => {
     const { groupId, title, description, epic, priority, assigneeId } = data;
 
+    const payload: TicketCreateRequest = {
+      name: title,
+      task: description,
+      priority: localPriorityToApi(priority),
+      complexity: 1,
+      section_id: groupId,
+    };
+
+    // сначала создаём таску на бэке — чтобы получить id
+    const created = await apiCreateTask(projectId, payload);
+
     const newTask: Task = {
-      id: Math.floor(Math.random() * 100000),
-      title,
-      description,
+      ...mapTicketToTask(created),
       epic: epic && epic.trim() ? epic : "GENERAL",
-      priority,
       assigneeId: assigneeId ?? null,
     };
 
@@ -195,14 +226,13 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
         g.id === groupId ? { ...g, items: [...g.items, newTask] } : g
       )
     );
-
-    await mockApi("createTask", { groupId, task: newTask });
   };
 
   const deleteTask: ProjectContextValue["deleteTask"] = async (
     groupId,
     taskId
   ) => {
+    // в API пока нет delete, поэтому удаляем только локально
     setGroups((prev) =>
       prev.map((g) =>
         g.id === groupId
@@ -210,8 +240,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
           : g
       )
     );
-
-    await mockApi("deleteTask", { groupId, taskId });
+    console.warn(
+      "[deleteTask] удалили таску только на фронте — на бэке нет ручки DELETE"
+    );
   };
 
   const updateTaskPriority: ProjectContextValue["updateTaskPriority"] = async (
@@ -219,6 +250,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
     taskId,
     priority
   ) => {
+    const taskIdNum = Number(taskId);
+    if (Number.isNaN(taskIdNum)) return;
+
+    const payload: TicketUpdateRequest = {
+      priority: localPriorityToApi(priority),
+    };
+
+    // сначала бэк
+    await apiUpdateTask(projectId, taskIdNum, payload);
+
+    // потом локально
     setGroups((prev) =>
       prev.map((g) =>
         g.id === groupId
@@ -231,8 +273,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
           : g
       )
     );
-
-    await mockApi("updateTaskPriority", { groupId, taskId, priority });
   };
 
   const assignTask: ProjectContextValue["assignTask"] = async (
@@ -240,6 +280,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
     taskId,
     memberId
   ) => {
+    // пока только локально, т.к. в API нет assignee
     setGroups((prev) =>
       prev.map((g) =>
         g.id === groupId
@@ -252,8 +293,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
           : g
       )
     );
-
-    await mockApi("assignTask", { groupId, taskId, memberId });
+    console.warn(
+      "[assignTask] изменение исполнителя только на фронте — в API нет поля assignee"
+    );
   };
 
   const moveTask: ProjectContextValue["moveTask"] = async (
@@ -263,50 +305,72 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({
   ) => {
     if (fromGroupId === toGroupId) return;
 
+    const taskIdNum = Number(taskId);
+    if (Number.isNaN(taskIdNum)) return;
+
+    // оптимистично обновляем UI
     setGroups((prev) => {
-      const fromIndex = prev.findIndex((g) => g.id === fromGroupId);
-      const toIndex = prev.findIndex((g) => g.id === toGroupId);
-
-      if (fromIndex === -1 || toIndex === -1) return prev;
-      if (Math.abs(fromIndex - toIndex) !== 1) return prev; // только соседние
-
       const next = [...prev];
-
-      const fromGroup = next[fromIndex];
-      const toGroup = next[toIndex];
+      const fromGroup = next.find((g) => g.id === fromGroupId);
+      const toGroup = next.find((g) => g.id === toGroupId);
+      if (!fromGroup || !toGroup) return prev;
 
       const fromItems = [...fromGroup.items];
-      const toItems = [...toGroup.items];
+      const idx = fromItems.findIndex((t) => t.id === taskId);
+      if (idx === -1) return prev;
 
-      const taskIndex = fromItems.findIndex((t) => t.id === taskId);
-      if (taskIndex === -1) return prev;
+      const [task] = fromItems.splice(idx, 1);
+      const toItems = [...toGroup.items, task];
 
-      const [task] = fromItems.splice(taskIndex, 1);
-      toItems.push(task);
-
-      next[fromIndex] = { ...fromGroup, items: fromItems };
-      next[toIndex] = { ...toGroup, items: toItems };
-
-      return next;
+      return next.map((g) =>
+        g.id === fromGroupId
+          ? { ...g, items: fromItems }
+          : g.id === toGroupId
+          ? { ...g, items: toItems }
+          : g
+      );
     });
 
-    await mockApi("moveTask", { taskId, fromGroupId, toGroupId });
+    try {
+      const payload: TicketUpdateRequest = {
+        section_id: toGroupId,
+      };
+      await apiUpdateTask(projectId, taskIdNum, payload);
+    } catch (err) {
+      console.error("Failed to move task on backend", err);
+      // сюда можно добавить откат стейта, если нужно
+    }
   };
 
   const createGroup: ProjectContextValue["createGroup"] = async ({ title }) => {
+    const name = title.trim() || "NEW GROUP";
+
+    const payload: SectionCreateRequest = {
+      name,
+      order: groups.length,
+    };
+
+    const section = (await apiCreateSection(projectId, payload)) as unknown as {
+      id: number;
+      name: string;
+      order: number;
+    };
+
     const newGroup: Group = {
-      id: Math.floor(Math.random() * 100000),
-      title: title.trim() || "NEW GROUP",
+      id: section.id,
+      title: section.name,
       items: [],
     };
 
     setGroups((prev) => [...prev, newGroup]);
-    await mockApi("createGroup", newGroup);
   };
 
   const deleteGroup: ProjectContextValue["deleteGroup"] = async (groupId) => {
+    // в API нет delete секции, поэтому только локально
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
-    await mockApi("deleteGroup", { groupId });
+    console.warn(
+      "[deleteGroup] удалили колонку только на фронте — на бэке нет delete секции"
+    );
   };
 
   return (

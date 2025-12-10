@@ -1,22 +1,98 @@
-import React from "react";
-import { Box } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, CircularProgress, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import ProjectsSection from "../components/profile/ProjectsSection";
 import ProfileInfoCard from "../components/profile/ProfileInfoCard";
+import { useApi, type UserResponse } from "../hooks/useApi";
 
 const ProfilePage: React.FC = () => {
-  const user = {
-    username: "Artsyom K.",
-    email: "user@example.com",
-    avatarUrl: "",
-  };
+  const navigate = useNavigate();
+  const { getCurrentUser, logout } = useApi();
+
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUser = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await getCurrentUser();
+        if (!cancelled) {
+          setUser(data);
+        }
+      } catch (err: any) {
+        console.error("Failed to load current user", err);
+        if (!cancelled) {
+          if (err?.status === 401) {
+            // токен протух или не залогинен
+            logout();
+            navigate("/login");
+          } else {
+            setError(err?.message || "Не удалось загрузить профиль.");
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getCurrentUser, logout, navigate]);
 
   const handleChangePassword = () => {
-    console.log("change password clicked");
+    // Пока только заглушка, т.к. в API нет ручки смены пароля
+    // Можно потом сделать отдельную страницу / модалку
+    alert("Функция смены пароля будет реализована позже.");
   };
 
   const handleLogout = () => {
-    console.log("logout clicked");
+    logout();
+    navigate("/login");
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "#ffffff",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "#ffffff",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          px: 3,
+        }}
+      >
+        <Typography color="error">
+          {error || "Не удалось загрузить профиль."}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -24,25 +100,24 @@ const ProfilePage: React.FC = () => {
         minHeight: "100vh",
         bgcolor: "#ffffff",
         display: "flex",
-        justifyContent: "center", // центр по горизонтали
-        alignItems: "center", // центр по вертикали
+        justifyContent: "center",
+        alignItems: "center",
         px: 3,
       }}
     >
-      {/* Внутренний контейнер НЕ растягиваем на 100% */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "center",
           alignItems: "stretch",
           ml: "20vw",
-          gap: "10vw", // тот самый промежуток между компонентами
+          gap: "10vw",
         }}
       >
         <Box
           sx={{
             width: 360,
-            height: "70vh", // фиксированная/понятная ширина карточки
+            height: "70vh",
           }}
         >
           <ProjectsSection />
@@ -57,7 +132,7 @@ const ProfilePage: React.FC = () => {
           <ProfileInfoCard
             username={user.username}
             email={user.email}
-            avatarUrl={user.avatarUrl}
+            avatarUrl={user.avatar_url ?? undefined}
             onChangePassword={handleChangePassword}
             onLogout={handleLogout}
           />
