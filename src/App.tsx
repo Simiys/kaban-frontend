@@ -5,10 +5,12 @@ import CssBaseline from "@mui/material/CssBaseline";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import MainPage from "./pages/MainPage";
+import ProjectPage from "./pages/ProjectPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const theme = createTheme({
   typography: {
-    fontFamily: '"Times New Roman", Times, serif',
+    fontFamily: "Geologica, Arial, sans-serif",
   },
 });
 
@@ -22,6 +24,8 @@ const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<LoginPage />} />
           <Route path="/main" element={<MainPage />} />
+          <Route path="/project" element={<ProjectPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </Router>
     </ThemeProvider>

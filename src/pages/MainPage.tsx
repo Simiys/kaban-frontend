@@ -7,6 +7,7 @@ import { useMediaQuery } from "@mui/material";
 
 import Header from "../components/Header";
 import RunningText from "../components/RunningText";
+import { useNavigate } from "react-router-dom";
 
 const theme = createTheme({
   typography: {
@@ -32,7 +33,7 @@ const slideUpVariants = {
 
 function MainPage() {
   // Данные для карточек
-
+  const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width:768px)");
 
   return (
@@ -148,7 +149,9 @@ function MainPage() {
                   padding: "12px 36px",
                 },
               }}
-              onClick={() => {}}
+              onClick={() => {
+                navigate("/project");
+              }}
             >
               Бета-тест
             </Button>
