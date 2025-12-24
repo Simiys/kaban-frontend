@@ -2,7 +2,7 @@
 import { useCallback, useRef, useState } from "react";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL ?? "http://26.145.216.235:8000";
 
 const TOKEN_STORAGE_KEY = "kabanx_tokens";
 
