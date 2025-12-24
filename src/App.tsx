@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import MainPage from "./pages/MainPage";
 import ProjectPage from "./pages/ProjectPage";
 import ProfilePage from "./pages/ProfilePage";
+import ActivateAccountPage from "./pages/ActivateAccountPage";
 
 const theme = createTheme({
   typography: {
@@ -26,6 +27,7 @@ const App: React.FC = () => {
           <Route path="/main" element={<MainPage />} />
           <Route path="/project/:projectId" element={<ProjectPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/auth/activate" element={<ActivateAccountPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

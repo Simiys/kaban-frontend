@@ -150,14 +150,13 @@ function MainPage() {
                 },
               }}
               onClick={() => {
-                navigate("/project");
+                navigate("/profile");
               }}
             >
               Бета-тест
             </Button>
           </motion.div>
 
-          {/* Заголовок секции с slide-up анимацией */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -187,7 +186,6 @@ function MainPage() {
             </Typography>
           </motion.div>
 
-          {/* Описательный текст с slide-up анимацией */}
           <motion.div
             initial="hidden"
             whileInView="visible"

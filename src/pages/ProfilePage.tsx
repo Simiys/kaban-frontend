@@ -29,7 +29,6 @@ const ProfilePage: React.FC = () => {
         console.error("Failed to load current user", err);
         if (!cancelled) {
           if (err?.status === 401) {
-            // токен протух или не залогинен
             logout();
             navigate("/login");
           } else {
@@ -47,12 +46,6 @@ const ProfilePage: React.FC = () => {
       cancelled = true;
     };
   }, [getCurrentUser, logout, navigate]);
-
-  const handleChangePassword = () => {
-    // Пока только заглушка, т.к. в API нет ручки смены пароля
-    // Можно потом сделать отдельную страницу / модалку
-    alert("Функция смены пароля будет реализована позже.");
-  };
 
   const handleLogout = () => {
     logout();
@@ -133,7 +126,7 @@ const ProfilePage: React.FC = () => {
             username={user.username}
             email={user.email}
             avatarUrl={user.avatar_url ?? undefined}
-            onChangePassword={handleChangePassword}
+            onChangePassword={() => {}}
             onLogout={handleLogout}
           />
         </Box>

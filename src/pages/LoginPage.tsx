@@ -1,12 +1,39 @@
 import React, { useState } from "react";
-import { Box, TextField, Button, Typography } from "@mui/material";
+import { Box, Button, Typography, OutlinedInput } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
 import { useApi } from "../hooks/useApi";
 
+const inputSx = {
+  width: "100%",
+  maxWidth: 420,
+  mb: 2,
+
+  px: 2,
+  py: 1.6,
+
+  backgroundColor: "#242424",
+  color: "#fff",
+  fontSize: "1rem",
+  fontFamily: '"Times New Roman", Times, serif',
+  borderRadius: "12px",
+
+  "& fieldset": {
+    border: "none",
+  },
+
+  "&::placeholder": {
+    color: "#999",
+  },
+
+  "@media (max-width:600px)": {
+    maxWidth: "100%",
+  },
+};
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useApi(); // хук работы с API
+  const { login } = useApi();
 
   const [formData, setFormData] = useState({
     login: "",
@@ -31,16 +58,14 @@ const LoginPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      // бекенд ждёт email
+
       await login({
         email: formData.login,
         password: formData.password,
       });
 
-      // токены уже сохранились внутри useApi, идём на главную
       navigate("/main");
     } catch (err: any) {
-      console.error("Login failed:", err);
       setError(
         err?.message || "Не удалось войти. Проверьте данные и попробуйте снова."
       );
@@ -49,167 +74,46 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleRegisterRedirect = () => {
-    navigate("/register");
-  };
-
   return (
     <AuthLayout
       title="Вход в аккаунт"
       sideTitle="Добро пожаловать в Kaban X"
       sideSubtitle="Зарегистрируйтесь, чтобы управлять канбан доской и пользоваться инструментами!"
       sideButtonText="Регистрация"
-      onSideButtonClick={handleRegisterRedirect}
+      onSideButtonClick={() => navigate("/register")}
     >
       <Box
         component="form"
         onSubmit={handleSubmit}
         sx={{
+          width: "100%",
+          maxWidth: 480,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          width: "100%",
-          maxWidth: "40vw",
-          "@media (max-width: 768px)": {
-            maxWidth: "90vw",
-          },
         }}
       >
-        <TextField
-          fullWidth
+        <OutlinedInput
           placeholder="Логин или email"
           value={formData.login}
           onChange={handleChange("login")}
-          sx={{
-            width: "60%",
-            marginBottom: "2vh",
-            "& .MuiOutlinedInput-root": {
-              padding: {
-                xs: "2.5vh 2vw",
-                md: "2.5vh 2vw",
-                lg: "3vh 2vw",
-              },
-              borderRadius: "1vh",
-              backgroundColor: "#242424",
-              color: "white",
-              fontSize: {
-                xs: "2.2vh",
-                md: "2.2vh",
-                lg: "2.5vh",
-              },
-              fontFamily: '"Times New Roman", Times, serif',
-              "& fieldset": {
-                border: "none",
-              },
-              "&:hover fieldset": {
-                border: "none",
-              },
-              "&.Mui-focused fieldset": {
-                border: "none",
-                backgroundColor: "#444",
-              },
-              "& input::placeholder": {
-                color: "#999",
-                fontFamily: '"Times New Roman", Times, serif',
-                textAlign: "left",
-              },
-            },
-            "@media (max-width: 768px)": {
-              width: "70% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "2.2vh 3vw",
-                fontSize: "2vh",
-                borderRadius: "1.5vh",
-              },
-            },
-            "@media (max-width: 480px)": {
-              width: "75% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "2vh 4vw",
-                fontSize: "1.9vh",
-              },
-            },
-            "@media (max-width: 360px)": {
-              width: "80% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "1.8vh 5vw",
-                fontSize: "1.8vh",
-              },
-            },
-          }}
+          sx={inputSx}
         />
 
-        <TextField
-          fullWidth
-          type="password"
+        <OutlinedInput
           placeholder="Пароль"
+          type="password"
           value={formData.password}
           onChange={handleChange("password")}
-          sx={{
-            width: "60%",
-            marginBottom: "2vh",
-            "& .MuiOutlinedInput-root": {
-              padding: {
-                xs: "2.5vh 2vw",
-                md: "2.5vh 2vw",
-                lg: "3vh 2vw",
-              },
-              borderRadius: "1vh",
-              backgroundColor: "#242424",
-              color: "white",
-              fontSize: {
-                xs: "2.2vh",
-                md: "2.2vh",
-                lg: "2.5vh",
-              },
-              fontFamily: '"Times New Roman", Times, serif',
-              "& fieldset": {
-                border: "none",
-              },
-              "&:hover fieldset": {
-                border: "none",
-              },
-              "&.Mui-focused fieldset": {
-                border: "none",
-                backgroundColor: "#444",
-              },
-              "& input::placeholder": {
-                color: "#999",
-                fontFamily: '"Times New Roman", Times, serif',
-                textAlign: "left",
-              },
-            },
-            "@media (max-width: 768px)": {
-              width: "70% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "2.2vh 3vw",
-                fontSize: "2vh",
-                borderRadius: "1.5vh",
-              },
-            },
-            "@media (max-width: 480px)": {
-              width: "75% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "2vh 4vw",
-                fontSize: "1.9vh",
-              },
-            },
-            "@media (max-width: 360px)": {
-              width: "80% !important",
-              "& .MuiOutlinedInput-root": {
-                padding: "1.8vh 5vw",
-                fontSize: "1.8vh",
-              },
-            },
-          }}
+          sx={inputSx}
         />
 
         {error && (
           <Typography
             sx={{
               color: "#ff6b6b",
-              marginBottom: "1vh",
-              fontSize: "1.8vh",
+              fontSize: "0.95rem",
+              mb: 1,
               textAlign: "center",
             }}
           >
@@ -219,54 +123,29 @@ const LoginPage: React.FC = () => {
 
         <Button
           type="submit"
-          variant="contained"
           disabled={isSubmitting}
           sx={{
-            width: "30%",
-            padding: {
-              xs: "2vh 0",
-              md: "2vh 0",
-              lg: "3vh 0",
-            },
-            border: "3px solid black",
-            borderRadius: {
-              xs: "3vh",
-              md: "3vh",
-              lg: "4vh",
-            },
+            mt: 1,
+            width: "60%",
+            maxWidth: 260,
+            py: 1.6,
+
+            borderRadius: "999px",
+            border: "2px solid black",
             backgroundColor: "black",
             color: "white",
-            fontSize: {
-              xs: "2vh",
-              md: "2vh",
-              lg: "2.8vh",
-            },
+
+            fontSize: "1rem",
             fontFamily: '"Times New Roman", Times, serif',
-            transition: "all 0.3s ease",
-            marginTop: "1vh",
+            transition: "all 0.25s ease",
+
             "&:hover": {
               backgroundColor: "transparent",
               color: "black",
-              border: "3px solid black",
             },
-            "@media (max-width: 768px)": {
-              width: "40% !important",
-              padding: "2.5vh 0",
-              fontSize: "2.5vh",
-              borderRadius: "3vh",
-              borderWidth: "2px",
-              marginTop: "2vh",
-            },
-            "@media (max-width: 480px)": {
-              width: "45% !important",
-              padding: "2.2vh 0",
-              fontSize: "2.2vh",
-              borderRadius: "2.5vh",
-            },
-            "@media (max-width: 360px)": {
-              width: "50% !important",
-              padding: "2vh 0",
-              fontSize: "2vh",
+
+            "@media (max-width:600px)": {
+              width: "100%",
             },
           }}
         >

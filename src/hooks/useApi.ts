@@ -1,5 +1,5 @@
 // src/hooks/useApi.ts
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -14,10 +14,8 @@ type TokenPair = {
 type RawTokenResponse = {
   access_token: string;
   refresh_token: string;
-  token_type: string; // "bearer"
+  token_type: string;
 };
-
-// ---- типы под основные ручки ----
 
 export type PriorityEnum = "low" | "medium" | "high";
 
@@ -130,18 +128,16 @@ const saveTokens = (tokens: TokenPair | null) => {
 };
 
 export const useApi = () => {
-  const [tokens, setTokensState] = useState<TokenPair | null>(() =>
-    loadTokens()
+  const tokensRef = useRef<TokenPair | null>(loadTokens());
+  const [tokens, setTokensState] = useState<TokenPair | null>(
+    tokensRef.current
   );
 
   const setTokens = useCallback((next: TokenPair | null) => {
+    tokensRef.current = next;
     setTokensState(next);
     saveTokens(next);
   }, []);
-
-  const authHeader = tokens?.accessToken
-    ? { Authorization: `Bearer ${tokens.accessToken}` }
-    : {};
 
   const request = useCallback(
     async <T>(
@@ -150,19 +146,20 @@ export const useApi = () => {
       retryOn401 = true
     ): Promise<T> => {
       const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+      const accessToken = tokensRef.current?.accessToken;
 
       const res = await fetch(url, {
         ...options,
         headers: {
           "Content-Type": "application/json",
           ...(options.headers || {}),
-          ...authHeader,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
       });
 
-      if (res.status === 401 && retryOn401 && tokens?.refreshToken) {
-        // пробуем рефрешнуть
-        const refreshed = await refreshToken(tokens.refreshToken);
+      if (res.status === 401 && retryOn401 && tokensRef.current?.refreshToken) {
+        const refreshed = await refreshToken(tokensRef.current.refreshToken);
+
         if (refreshed) {
           const retryHeaders = {
             ...(options.headers || {}),
@@ -196,7 +193,7 @@ export const useApi = () => {
 
       return (await res.json()) as T;
     },
-    [authHeader, tokens, setTokens]
+    [setTokens]
   );
 
   const buildError = async (res: Response) => {
@@ -287,6 +284,18 @@ export const useApi = () => {
     setTokens(null);
   }, [setTokens]);
 
+  const activateAccount = useCallback(async (token: string): Promise<void> => {
+    const res = await fetch(
+      `${API_BASE_URL}/auth/activate?token=${encodeURIComponent(token)}`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!res.ok) {
+      throw await buildError(res);
+    }
+  }, []);
   // ---- user ----
 
   const getCurrentUser = useCallback(async () => {
@@ -400,6 +409,7 @@ export const useApi = () => {
     login,
     register,
     getCurrentUser,
+    activateAccount,
 
     // teams
     listTeams,

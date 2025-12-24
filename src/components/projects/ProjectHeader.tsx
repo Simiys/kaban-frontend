@@ -9,7 +9,6 @@ interface ProjectHeaderProps {
 }
 
 const mockFetchInviteLink = async (): Promise<string> => {
-  // Здесь потом будет реальный вызов API
   await new Promise((r) => setTimeout(r, 150));
   return "https://app.example.com/project/invite/123";
 };
@@ -33,7 +32,6 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ name }) => {
 
   const handleMemberSelect = (id: number | string) => {
     handleMembersClose();
-    // потом заменишь на роутер
     window.open(`/users/${id}`, "_blank");
   };
 
@@ -46,7 +44,6 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ name }) => {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link);
       } else {
-        // fallback
         const textarea = document.createElement("textarea");
         textarea.value = link;
         textarea.style.position = "fixed";
@@ -81,7 +78,6 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ name }) => {
         boxSizing: "border-box",
       }}
     >
-      {/* Название проекта + дропдаун участников */}
       <Box
         sx={{
           display: "flex",
@@ -117,7 +113,6 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ name }) => {
         </IconButton>
       </Box>
 
-      {/* Дропдаун участников проекта */}
       <Menu
         anchorEl={anchorEl}
         open={openMembers}

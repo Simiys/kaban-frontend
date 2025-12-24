@@ -17,10 +17,7 @@ interface HeaderProps {
   avatarUrl?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({
-  username = "Username",
-  avatarUrl,
-}) => {
+const Header: React.FC<HeaderProps> = ({ username = "Profile", avatarUrl }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();

@@ -14,7 +14,6 @@ const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
   username,
   email,
   avatarUrl,
-  onChangePassword,
   onLogout,
 }) => {
   return (
@@ -69,21 +68,6 @@ const ProfileInfoCard: React.FC<ProfileInfoCardProps> = ({
           mt: "auto",
         }}
       >
-        <Button
-          fullWidth
-          onClick={onChangePassword}
-          sx={{
-            borderRadius: 0,
-            textTransform: "none",
-            justifyContent: "flex-start",
-            px: 2,
-            py: 1.5,
-            color: "#000000",
-          }}
-        >
-          Сменить пароль
-        </Button>
-
         <Divider />
 
         <Button
